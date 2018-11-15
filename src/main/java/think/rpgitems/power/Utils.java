@@ -1,6 +1,7 @@
 package think.rpgitems.power;
 
 import cat.nyaa.nyaacore.Message;
+import cat.nyaa.nyaacore.Pair;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -21,7 +22,6 @@ import think.rpgitems.data.Font;
 import think.rpgitems.item.RPGItem;
 import think.rpgitems.power.impl.PowerSelector;
 import think.rpgitems.utils.MaterialUtils;
-import think.rpgitems.utils.Pair;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;

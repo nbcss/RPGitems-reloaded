@@ -2,6 +2,7 @@ package think.rpgitems;
 
 import cat.nyaa.nyaacore.LanguageRepository;
 import cat.nyaa.nyaacore.Message;
+import cat.nyaa.nyaacore.Pair;
 import com.google.common.base.Strings;
 import com.sun.nio.file.ExtendedOpenOption;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -31,7 +32,6 @@ import think.rpgitems.power.*;
 import think.rpgitems.support.WGSupport;
 import think.rpgitems.utils.MaterialUtils;
 import think.rpgitems.utils.NetworkUtils;
-import think.rpgitems.utils.Pair;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -99,55 +99,84 @@ public class Handler extends RPGCommandReceiver {
     @Attribute("item")
     public void reloadItem(CommandSender sender, Arguments args) throws IOException {
         RPGItem item = ItemManager.getItemByName(args.nextString());
-        Pair<File, FileLock> backup = ItemManager.unlockedItem.get(item);
-        if (backup == null) {
-            msg(sender, "message.error.reloading_locked");
-            return;
-        }
-        FileLock fileLock = backup.getValue();
         File file = item.getFile();
-        ItemManager.remove(item, false);
-        if (!file.exists() || file.isDirectory()) {
-            ItemManager.itemFileLocks.remove(item.getFile().getCanonicalPath());
-            ItemManager.unlockedItem.remove(item);
-            msg(sender, "message.item.file_deleted");
-            return;
-        }
-        boolean load = ItemManager.load(file, sender);
-        if (!load) {
-            try {
-                File edited = ItemManager.unlockAndBackup(item, true);
-                msg(sender, "message.item.recovering", edited.getPath());
-                try (FileChannel backupChannel = fileLock.channel(); FileChannel fileChannel = new FileOutputStream(file).getChannel()) {
-                    fileChannel.transferFrom(backupChannel, 0, backupChannel.size());
-                }
-                ItemManager.load(file, sender);
-            } catch (IOException e) {
-                msg(sender, "message.error.recovering");
-                e.printStackTrace();
-                throw new RuntimeException(e);
+
+        if (plugin.cfg.itemFsLock) {
+            Pair<File, FileLock> backup = ItemManager.unlockedItem.get(item);
+            if (backup == null) {
+                msg(sender, "message.error.reloading_locked");
+                return;
+            }
+            FileLock fileLock = backup.getValue();
+            ItemManager.remove(item, false);
+            if (!file.exists() || file.isDirectory()) {
+                ItemManager.itemFileLocks.remove(item.getFile().getCanonicalPath());
+                ItemManager.unlockedItem.remove(item);
+                msg(sender, "message.item.file_deleted");
+                return;
+            }
+            boolean load = ItemManager.load(file, sender);
+            if (!load) {
+                recoverBackup(sender, item, file, fileLock);
+            } else {
+                backup.getKey().deleteOnExit();
+                ItemManager.unlockedItem.remove(item);
+                fileLock.release();
+                fileLock.channel().close();
             }
         } else {
-            backup.getKey().deleteOnExit();
-            ItemManager.unlockedItem.remove(item);
-            fileLock.release();
-            fileLock.channel().close();
+            ItemManager.remove(item, false);
+            boolean load = ItemManager.load(file, sender);
+            Pair<File, FileLock> backup = ItemManager.unlockedItem.remove(item);
+            if (!load) {
+                if (backup != null) {
+                    recoverBackup(sender, item, file, backup.getValue());
+                } else {
+                    msg(sender, "message.item.no_backup", item.getName());
+                }
+            } else {
+                if (backup != null) {
+                    backup.getKey().deleteOnExit();
+                    backup.getValue().release();
+                    backup.getValue().channel().close();
+                }
+            }
         }
     }
 
-    @SubCommand("unlockitem")
+    private void recoverBackup(CommandSender sender, RPGItem item, File file, FileLock fileLock) {
+        try {
+            File edited = ItemManager.unlockAndBackup(item, true);
+            msg(sender, "message.item.recovering", edited.getPath());
+            try (FileChannel backupChannel = fileLock.channel(); FileChannel fileChannel = new FileOutputStream(file).getChannel()) {
+                fileChannel.transferFrom(backupChannel, 0, backupChannel.size());
+            }
+            ItemManager.load(file, sender);
+        } catch (IOException e) {
+            msg(sender, "message.error.recovering");
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    @SubCommand("backupitem")
     @Attribute("item")
     public void unlockItem(CommandSender sender, Arguments args) throws IOException {
         RPGItem item = getItem(args.nextString());
         File backup = ItemManager.unlockAndBackup(item, false);
+        boolean itemFsLock = plugin.cfg.itemFsLock;
         FileLock lock = FileChannel.open(backup.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE, ExtendedOpenOption.NOSHARE_WRITE, ExtendedOpenOption.NOSHARE_DELETE).tryLock(0L, Long.MAX_VALUE, true);
-        if (lock == null) {
+        if (itemFsLock && lock == null) {
             plugin.getLogger().severe("Error locking " + backup + ".");
             ItemManager.lock(item.getFile());
             throw new IllegalStateException();
         }
         ItemManager.unlockedItem.put(item, Pair.of(backup, lock));
-        msg(sender, "message.item.unlocked", backup.getPath());
+        if (itemFsLock) {
+            msg(sender, "message.item.unlocked", item.getFile().getPath(), backup.getPath());
+        } else {
+            msg(sender, "message.item.backedup", item.getFile().getPath(), backup.getPath());
+        }
     }
 
     @SubCommand("cleanbackup")

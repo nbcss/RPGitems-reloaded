@@ -1,5 +1,6 @@
 package think.rpgitems.power.impl;
 
+import cat.nyaa.nyaacore.Pair;
 import cat.nyaa.nyaacore.utils.RayTraceUtils;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -21,7 +22,6 @@ import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 import think.rpgitems.RPGItems;
 import think.rpgitems.power.*;
-import think.rpgitems.utils.Pair;
 
 import java.util.Comparator;
 import java.util.List;

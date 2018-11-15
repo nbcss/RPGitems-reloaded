@@ -1,6 +1,7 @@
 package think.rpgitems.item;
 
 import cat.nyaa.nyaacore.Message;
+import cat.nyaa.nyaacore.Pair;
 import com.sun.nio.file.ExtendedOpenOption;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -18,7 +19,6 @@ import think.rpgitems.RPGItems;
 import think.rpgitems.power.UnknownExtensionException;
 import think.rpgitems.power.UnknownPowerException;
 import think.rpgitems.support.WGSupport;
-import think.rpgitems.utils.Pair;
 
 import java.io.*;
 import java.nio.channels.FileChannel;
@@ -334,6 +334,7 @@ public class ItemManager {
     }
 
     public static void lock(File file) throws IOException {
+        if (!plugin.cfg.itemFsLock) return;
         FileLock oldLock = itemFileLocks.get(file.getCanonicalPath());
         if (oldLock != null) {
             if (oldLock.isValid()) {
@@ -353,6 +354,7 @@ public class ItemManager {
     }
 
     private static void unlock(File itemFile, boolean remove) throws IOException {
+        if (!plugin.cfg.itemFsLock) return;
         FileLock fileLock = remove ? itemFileLocks.remove(itemFile.getCanonicalPath()) : itemFileLocks.get(itemFile.getCanonicalPath());
         if (fileLock != null) {
             if (fileLock.isValid()) {

@@ -41,6 +41,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
@@ -556,7 +557,11 @@ public class RPGItem {
                     shapedRecipe.setIngredient(e.getValue(), e.getKey().getData());
                 }
             }
-            Bukkit.addRecipe(shapedRecipe);
+            try {
+                Bukkit.addRecipe(shapedRecipe);
+            } catch (IllegalStateException exception) {
+                plugin.getLogger().log(Level.INFO, "Error adding recipe. It's ok when reloading plugin", exception);
+            }
         }
     }
 

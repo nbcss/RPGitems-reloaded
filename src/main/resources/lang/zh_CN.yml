@@ -161,8 +161,10 @@ message:
     empty_dir: 跳过空目录 %s
     file_deleted: 物品配置已删除。
     recovering: 重载物品失败，恢复中。您的修改已保存至 %s。
-    unlocked: 物品已结束，备份至 %s。
+    unlocked: 物品 %s 已解锁，备份至 %s。
+    backedup: 物品 %s 已备份至 %s。
     cleanbackup: 已清理备份。
+    no_backup: 未找到物品 %s 的备份。
   damagemode:
     FIXED: 物品 '%s' 伤害模式设定为固定伤害（默认）
     MULTIPLY: 物品 '%s' 伤害模式设定为乘法伤害（原版伤害乘以RPG伤害）

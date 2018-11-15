@@ -63,6 +63,7 @@ public class PowerPotionSelf extends BasePower implements PowerRightClick {
     @Override
     public void init(ConfigurationSection section) {
         amplifier = section.getInt("amp");
+        duration = section.getInt("time");
         super.init(section);
     }
 
